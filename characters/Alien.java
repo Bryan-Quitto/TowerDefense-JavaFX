@@ -27,8 +27,8 @@ public abstract class Alien implements Health {
         this.health = health;
         this.speed = speed;
         this.fileName = fileName;
-        Image image = new Image(fileName);
-        ImageView imageView = new ImageView(image);
+        this.image = new Image(fileName);
+        this.imageView = new ImageView(this.image);
     }
 
     /**
@@ -95,5 +95,20 @@ public abstract class Alien implements Health {
      */
     public ImageView getImageView() {
         return imageView;
+    }
+
+    /**
+     * @return Speed of Alien
+     */
+    public int getSpeed() {
+        return speed;
+    }
+
+    /**
+     * Moves the alien based on its speed
+     */
+    public void move() {
+        // Actualiza la posición del alien basado en su velocidad
+        imageView.setX(imageView.getX() + speed);
     }
 }
