@@ -1,5 +1,4 @@
 package characters;
-import characters.interfaces.Health;
 import java.util.Random;
 /**
  * This is a representation of the SlowAlien which is an Alien

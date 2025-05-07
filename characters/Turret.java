@@ -5,7 +5,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.shape.LineTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
-import javafx.util.Duration;
+import javafx.util.Duration;  
 /**
  * This is a representation of the Turret
  * @author Bilal Mawji
@@ -15,6 +15,7 @@ public class Turret {
 
     private int attack;
     private int cost;
+    private double range; // Nuevo atributo para el rango
     private String fileName;
     private Image image;
     private ImageView imageView;
@@ -27,6 +28,7 @@ public class Turret {
     public Turret() {
         this.attack = 50;
         this.cost = 40;
+        this.range = 500.0; // Aumentado el radio de ataque a 200 píxeles
         this.fileName = "./provided/res/launcher.png";
         this.image = new Image(fileName);
         this.imageView = new ImageView(image);
@@ -95,30 +97,86 @@ public class Turret {
      * Attacks a Alien a; Alien a loses health equal to attack of Turret
      * @param a Alien that is attacked by Turret
      */
-    public void attack(Alien a) {
-        // Takes 4 attacks for Turret t to destroy Alien a
-        a.subHealth(attack);
+    /**
+     * Calcula la distancia entre la torre y un alien
+     * @param a Alien objetivo
+     * @return distancia en píxeles
+     */
+    public double calculateDistance(Alien a) {
+        double turretX = this.imageView.getX();
+        double turretY = this.imageView.getY();
+        double alienX = a.getImageView().getX();
+        double alienY = a.getImageView().getY();
+        
+        return Math.sqrt(Math.pow(turretX - alienX, 2) + Math.pow(turretY - alienY, 2));
     }
 
     /**
-     * Makes a Path for Bomb to travel
-     * @return Path Path for Bombs
-     * @param x x coordinate
-     * @param y y coordinate
+     * Verifica si un alien está dentro del rango de ataque
+     * @param a Alien a verificar
+     * @return true si está en rango, false si no
      */
-    public Path createPathBombs(double x, double y) {
+    public boolean isInRange(Alien a) {
+        return calculateDistance(a) <= this.range;
+    }
+
+    /**
+     * Ataca a un Alien si está dentro del rango
+     * @param a Alien que será atacado por la Torre
+     * @return true si el ataque fue exitoso, false si está fuera de rango
+     */
+    public boolean attack(Alien a) {
+        if (isInRange(a)) {
+            a.subHealth(attack);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Crea un camino para que la bomba viaje hacia el objetivo
+     * @param target el Alien objetivo
+     * @return Path camino para la bomba
+     */
+    public Path createPathBombs(Alien target) {
         Path path = new Path();
-        MoveTo spawn = new MoveTo(x, y);
-        LineTo line1 = new LineTo(0, 0);
+        double startX = getBombImageView().getX();  // Usar la posición actual de la bomba
+        double startY = getBombImageView().getY();
+        double targetX = target.getImageView().getX();
+        double targetY = target.getImageView().getY();
+        
+        MoveTo spawn = new MoveTo(startX, startY);
+        LineTo line1 = new LineTo(targetX, targetY);
         path.getElements().addAll(spawn, line1);
         return path;
     }
 
-    public PathTransition pathTransitionBomb() {
-        Path path = createPathBombs(getImageView().getX(),
-            getImageView().getY());
-        PathTransition pt2 =
-            new PathTransition(Duration.millis(5000), path, getBombImageView());
+    /**
+     * Crea la transición de la bomba hacia el alien objetivo
+     * @param target el Alien objetivo
+     * @return PathTransition configurada para el ataque
+     */
+    public PathTransition pathTransitionBomb(Alien target) {
+        Path path = createPathBombs(target);
+        PathTransition pt2 = new PathTransition(Duration.millis(500), path, getBombImageView());  // Reducir la duración
+        pt2.setCycleCount(1);  // Cambiar a 1 para que se actualice la trayectoria
+        pt2.setAutoReverse(false);
+        
+        pt2.setOnFinished(_ -> {
+            if (isInRange(target) && !target.isDead()) {
+                attack(target);
+                // Reiniciar posición de la bomba para el siguiente disparo
+                getBombImageView().setX(getImageView().getX());
+                getBombImageView().setY(getImageView().getY());
+                // Iniciar inmediatamente la siguiente transición
+                PathTransition nextShot = pathTransitionBomb(target);
+                nextShot.play();
+            } else {
+                // Si el objetivo está muerto o fuera de rango, ocultar la bomba
+                getBombImageView().setVisible(false);
+            }
+        });
+        
         return pt2;
     }
 }
