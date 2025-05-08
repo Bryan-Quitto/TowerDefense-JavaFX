@@ -16,16 +16,19 @@
         </mapper>
     </pathconvert>
 
+   <property name="src.dir" value="src/main/java"/>
+   <property name="resources.dir" value="src/main/resources"/>
+
    <target name="compile">
-        <javac srcdir="." destdir="." includeantruntime="false" taskname="">
-            <classpath>
-                <pathelement path="${javafx.path}"/>
-                <fileset dir="${javafx.path}">
-                    <include name="*.jar"/>
-                </fileset>
-            </classpath>
-        </javac>
-    </target>
+       <javac srcdir="${src.dir}" destdir="." includeantruntime="false">
+           <classpath>
+               <pathelement path="${javafx.path}"/>
+               <fileset dir="${javafx.path}">
+                   <include name="*.jar"/>
+               </fileset>
+           </classpath>
+       </javac>
+   </target>
 
     <target name="checkstyle">
         <java jar="${checkstyle.jar}" fork="true" taskname="" failonerror="true">

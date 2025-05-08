@@ -6,35 +6,59 @@ import javafx.scene.shape.LineTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
 import javafx.util.Duration;  
-/**
- * This is a representation of the Turret
- * @author Bilal Mawji
- * @version 1.0
- */
+
 public class Turret {
 
-    private int attack;
-    private int cost;
-    private double range; // Nuevo atributo para el rango
-    private String fileName;
-    private Image image;
-    private ImageView imageView;
-    private String bombFileName;
-    private Image bombImage;
-    private ImageView bombImageView;
-    /**
-     * Constructor for Turret; sets attack to 50
-     */
+    protected int attack;
+    protected int cost;
+    protected double range;
+    protected String fileName;
+    protected Image image;
+    protected ImageView imageView;
+    protected String bombFileName;
+    protected Image bombImage;
+    protected ImageView bombImageView;
+    protected int upgradeLevel; // Nuevo atributo para el nivel de mejora
+    protected static final int UPGRADE_COST = 50; // Costo fijo de mejora
+    protected static final int UPGRADE_ATTACK_BONUS = 10; // Bonus de ataque por mejora
+
     public Turret() {
         this.attack = 50;
         this.cost = 40;
-        this.range = 500.0; // Aumentado el radio de ataque a 200 píxeles
+        this.range = 500.0;
         this.fileName = "./provided/res/launcher.png";
         this.image = new Image(fileName);
         this.imageView = new ImageView(image);
         this.bombFileName = "./provided/res/bomb.gif";
         this.bombImage = new Image(bombFileName);
         this.bombImageView = new ImageView(bombImage);
+        this.upgradeLevel = 0; // Inicializa el nivel de mejora en 0
+    }
+
+    /**
+     * Mejora la torreta aumentando su daño
+     * @return true si la mejora fue exitosa, false si no hay suficientes recursos
+     */
+    public boolean upgrade() {
+        this.attack += UPGRADE_ATTACK_BONUS;
+        this.upgradeLevel++;
+        return true;
+    }
+
+    /**
+     * Obtiene el costo de la siguiente mejora
+     * @return el costo fijo de mejora
+     */
+    public int getUpgradeCost() {
+        return UPGRADE_COST;
+    }
+
+    /**
+     * Obtiene el nivel actual de mejora de la torreta
+     * @return el nivel de mejora actual
+     */
+    public int getUpgradeLevel() {
+        return upgradeLevel;
     }
 
     /**
