@@ -32,7 +32,7 @@ public class Turret {
         this.bombFileName = "./provided/res/bomb.gif";
         this.bombImage = new Image(bombFileName);
         this.bombImageView = new ImageView(bombImage);
-        this.upgradeLevel = 0; // Inicializa el nivel de mejora en 0
+        this.upgradeLevel = 0;
     }
 
     /**
@@ -181,22 +181,29 @@ public class Turret {
      * @return PathTransition configurada para el ataque
      */
     public PathTransition pathTransitionBomb(Alien target) {
-        Path path = createPathBombs(target);
-        PathTransition pt2 = new PathTransition(Duration.millis(500), path, getBombImageView());  // Reducir la duración
-        pt2.setCycleCount(1);  // Cambiar a 1 para que se actualice la trayectoria
+        // Posicionar la bomba directamente sobre el objetivo
+        getBombImageView().setX(target.getImageView().getX());
+        getBombImageView().setY(target.getImageView().getY());
+        
+        // Crear una transición sin movimiento solo para manejar el tiempo
+        Path path = new Path();
+        MoveTo spawn = new MoveTo(target.getImageView().getX(), target.getImageView().getY());
+        path.getElements().add(spawn);
+        
+        PathTransition pt2 = new PathTransition(Duration.millis(500), path, getBombImageView());
+        pt2.setCycleCount(1);
         pt2.setAutoReverse(false);
         
         pt2.setOnFinished(_ -> {
             if (isInRange(target) && !target.isDead()) {
                 attack(target);
-                // Reiniciar posición de la bomba para el siguiente disparo
-                getBombImageView().setX(getImageView().getX());
-                getBombImageView().setY(getImageView().getY());
-                // Iniciar inmediatamente la siguiente transición
+                // Mantener la bomba visible sobre el objetivo
+                getBombImageView().setX(target.getImageView().getX());
+                getBombImageView().setY(target.getImageView().getY());
+                // Continuar el efecto
                 PathTransition nextShot = pathTransitionBomb(target);
                 nextShot.play();
             } else {
-                // Si el objetivo está muerto o fuera de rango, ocultar la bomba
                 getBombImageView().setVisible(false);
             }
         });

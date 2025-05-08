@@ -253,9 +253,16 @@ public class Game extends Application {
             public void changed(ObservableValue<? extends Status> observableValue, 
                               Status oldValue, Status newValue) {
                 if (newValue == Status.STOPPED) {
-                    base.subHealth(aliens[0].getAttack());
-                    text.setText("Health: " + base.getHealth() + "\nScore: " + base.getScore());
-                    checkGameOver();
+                    // Crear un Timeline para daño continuo
+                    Timeline damageTimeline = new Timeline(
+                        new KeyFrame(Duration.seconds(1), e -> {
+                            base.subHealth(aliens[0].getAttack());
+                            text.setText("Health: " + base.getHealth() + "\nScore: " + base.getScore());
+                            checkGameOver();
+                        })
+                    );
+                    damageTimeline.setCycleCount(Timeline.INDEFINITE);
+                    damageTimeline.play();
                 }
             }
         });
@@ -265,9 +272,16 @@ public class Game extends Application {
             public void changed(ObservableValue<? extends Status> observableValue, 
                               Status oldValue, Status newValue) {
                 if (newValue == Status.STOPPED) {
-                    base.subHealth(aliens[1].getAttack());
-                    text.setText("Health: " + base.getHealth() + "\nScore: " + base.getScore());
-                    checkGameOver();
+                    // Crear un Timeline para daño continuo
+                    Timeline damageTimeline = new Timeline(
+                        new KeyFrame(Duration.seconds(1), e -> {
+                            base.subHealth(aliens[1].getAttack());
+                            text.setText("Health: " + base.getHealth() + "\nScore: " + base.getScore());
+                            checkGameOver();
+                        })
+                    );
+                    damageTimeline.setCycleCount(Timeline.INDEFINITE);
+                    damageTimeline.play();
                 }
             }
         });
