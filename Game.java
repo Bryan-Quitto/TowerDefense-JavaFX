@@ -98,6 +98,14 @@ public class Game extends Application {
     private void startGame() {
         gameState = new GameState();
         createGameScene();  // Recrear la escena del juego con el nuevo estado
+        
+        // Crear un Timeline para actualizar el estado del juego regularmente
+        Timeline gameLoop = new Timeline(new KeyFrame(Duration.millis(100), e -> {
+            gameState.updateGame();
+        }));
+        gameLoop.setCycleCount(Timeline.INDEFINITE);
+        gameLoop.play();
+        
         mainStage.setScene(gameScene);
     }
     
@@ -129,7 +137,6 @@ public class Game extends Application {
         ImageView alien3 = aliens[1].getImageView();
         
         // Text
-        // Modificar la declaración existente de text
         text = new Text("Health: " + base.getHealth() + "\nScore: " + base.getScore());
         text.setBoundsType(TextBoundsType.VISUAL);
         text.setFont(Font.loadFont("file:./provided/res/RetroComputer.ttf", 50));
@@ -151,7 +158,11 @@ public class Game extends Application {
         areas2.setFitHeight(736);
         pane2.setMinSize(1376, 736);
         
-        Scene scene = new Scene(root);
+        // Cambiar esta línea
+        // Por esta línea
+        gameScene = new Scene(root);
+        
+        // Y actualizar todas las referencias de 'scene' a 'gameScene'
         pane2.setOnMouseMoved(new EventHandler<MouseEvent>() {
             @Override public void handle(MouseEvent event) {
                 int mouseX = ((int) event.getX());
@@ -168,13 +179,13 @@ public class Game extends Application {
                                     if (!placePixels
                                         .getColor(mouseX + 5, mouseY)
                                         .equals(Color.BLACK)) {
-                                        scene
+                                        gameScene
                                         .setCursor(greenCursor);
                                     }
                                 }
                             }
                             } else {
-                                scene.setCursor(redCursor);
+                                gameScene.setCursor(redCursor);
                         }
                     }
                 } catch (IndexOutOfBoundsException e) {
@@ -182,67 +193,26 @@ public class Game extends Application {
                 }
             }
         });
+        
         pane2.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override public void handle(MouseEvent event) {
                 int mouseX = ((int) event.getX());
                 int mouseY = ((int) event.getY());
-                if (scene.getCursor().equals(greenCursor) && base.haveScore()) {
-                    Turret t = new Turret();
-                    t.getImageView().setX(mouseX);
-                    t.getImageView().setY(mouseY);
-                    t.getBombImageView().setX(mouseX);
-                    t.getBombImageView().setY(mouseY);
-                    pane2.getChildren().addAll(t.getImageView(),
-                        t.getBombImageView());
+                if (gameScene.getCursor().equals(greenCursor) && base.haveScore()) {
+                    // Crear la torre y registrarla en el GameState
+                    gameState.addTurret(mouseX, mouseY);
+                    Turret t = gameState.getTurrets().get(gameState.getTurrets().size() - 1);
+                    pane2.getChildren().addAll(t.getImageView(), t.getBombImageView());
                     
-                    // Encontrar el alien más cercano y mantener una referencia final
-                    final Alien[] currentTarget = new Alien[1];
-                    double minDistance = Double.MAX_VALUE;
-                    for (Alien alien : aliens) {
-                        if (t.isInRange(alien)) {
-                            double distance = t.calculateDistance(alien);
-                            if (distance < minDistance) {
-                                minDistance = distance;
-                                currentTarget[0] = alien;
-                            }
-                        }
-                    }
-                    
-                    // Si hay un alien en rango, dispararle
-                    if (currentTarget[0] != null) {
-                        PathTransition bombTransition = t.pathTransitionBomb(currentTarget[0]);
-                        bombTransition.setDuration(Duration.millis(2000));
-                        bombTransition.play();
-                        
-                        // Timeline para actualizar el objetivo
-                        final Timeline updateTarget = new Timeline();
-                        KeyFrame keyFrame = new KeyFrame(Duration.millis(500), _ -> {
-                            if (currentTarget[0] != null && !currentTarget[0].isDead() && t.isInRange(currentTarget[0])) {
-                                bombTransition.setPath(t.createPathBombs(currentTarget[0]));
-                            } else {
-                                // Buscar nuevo objetivo si el actual murió o está fuera de rango
-                                Alien newTarget = findClosestAlien(t, aliens);
-                                if (newTarget != null) {
-                                    currentTarget[0] = newTarget;
-                                    bombTransition.setPath(t.createPathBombs(newTarget));
-                                } else {
-                                    updateTarget.stop();
-                                    bombTransition.stop();
-                                    t.getBombImageView().setVisible(false);
-                                }
-                            }
-                        });
-                        updateTarget.getKeyFrames().add(keyFrame);
-                        updateTarget.setCycleCount(Timeline.INDEFINITE);
-                        updateTarget.play();
-                    }
+                    // Iniciar el sistema de targeting de la torreta
+                    t.startTargeting(gameState.getEnemyQueue());
                     
                     base.buyTurret();
-                    text.setText("Health: " + base.getHealth() + "\nScore: "
-                        + base.getScore());
+                    text.setText("Health: " + base.getHealth() + "\nScore: " + base.getScore());
                 }
             }
         });
+
         // PathTransition
         PauseTransition pause = new PauseTransition(Duration.millis(5000));
         PathTransition pt = new PathTransition(Duration.millis(20000), p1, alien2);
@@ -272,10 +242,14 @@ public class Game extends Application {
             public void changed(ObservableValue<? extends Status> observableValue, 
                               Status oldValue, Status newValue) {
                 if (newValue == Status.STOPPED) {
-                    // Crear un Timeline para daño continuo
                     Timeline damageTimeline = new Timeline(
                         new KeyFrame(Duration.seconds(1), e -> {
-                            base.subHealth(aliens[1].getAttack());
+                            int damage = aliens[0].getAttack();
+                            // Reducir el daño basado en las torretas cercanas
+                            if (hasTurretsNearBase()) {
+                                damage = (int)(damage * 0.8); // 20% de reducción de daño
+                            }
+                            base.subHealth(damage);
                             text.setText("Health: " + base.getHealth() + "\nScore: " + base.getScore());
                             checkGameOver();
                         })
@@ -366,25 +340,29 @@ public class Game extends Application {
         ));
     }
     
-    // Agregar este método auxiliar
-    private Alien findClosestAlien(Turret turret, Alien[] aliens) {
-        double minDistance = Double.MAX_VALUE;
-        Alien closest = null;
-        for (Alien alien : aliens) {
-            if (!alien.isDead() && turret.isInRange(alien)) {
-                double distance = turret.calculateDistance(alien);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closest = alien;
-                }
-            }
-        }
-        return closest;
-    }
     
     private void checkGameOver() {
         if (gameState.getBase().getHealth() <= 0) {
             mainStage.setScene(gameOverScene);
         }
+    }
+    
+    private boolean hasTurretsNearBase() {
+        for (Turret turret : gameState.getTurrets()) {
+            double distance = calculateDistanceToBase(turret);
+            if (distance < 200) { // 200 píxeles de rango
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private double calculateDistanceToBase(Turret turret) {
+        // Posición de la base (ajustar según tu implementación)
+        double baseX = 1121.0;
+        double baseY = 300.0;
+        double turretX = turret.getImageView().getX();
+        double turretY = turret.getImageView().getY();
+        return Math.sqrt(Math.pow(baseX - turretX, 2) + Math.pow(baseY - turretY, 2));
     }
 }

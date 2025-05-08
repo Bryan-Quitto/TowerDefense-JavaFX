@@ -28,7 +28,11 @@ public class Wave {
     }
     
     public Alien getNextEnemy() {
-        return enemies.poll();
+        Alien nextEnemy = enemies.poll();
+        if (nextEnemy != null && nextEnemy.isDead()) {
+            nextEnemy = null; // Eliminar referencia si el alien está muerto
+        }
+        return nextEnemy;
     }
     
     public boolean hasMoreEnemies() {

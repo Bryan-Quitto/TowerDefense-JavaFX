@@ -26,8 +26,10 @@ public class GameState {
     private List<Turret> turrets = new ArrayList<>();
     private WaveSystem waveSystem;
     private TowerHistory towerHistory;
+    private CircularQueue enemyQueue;
     
     public GameState() {
+        enemyQueue = new CircularQueue(10); // Adjust capacity as needed
         initializeGameElements();
         loadResources();
         waveSystem = new WaveSystem();
@@ -41,9 +43,23 @@ public class GameState {
             new SlowAlien()
         };
         
-        // Inicializar la salud de los aliens
+        // Initialize aliens and add them to the circular queue
         for (Alien alien : aliens) {
             alien.increaseHealth();
+            enemyQueue.enqueue(alien);
+        }
+    }
+    
+    // Add method to update enemy status
+    public void updateEnemyStatus() {
+        enemyQueue.updateStatus();
+        // Eliminar referencias de aliens muertos en el array aliens
+        for (int i = 0; i < aliens.length; i++) {
+            if (aliens[i] != null && aliens[i].isDead()) {
+                handleAlienDeath(aliens[i]); // Manejar la muerte del alien y actualizar el score
+                aliens[i].getImageView().setVisible(false); // Ocultar la imagen del enemigo
+                aliens[i] = null; // Eliminar referencia
+            }
         }
     }
     
@@ -69,8 +85,10 @@ public class GameState {
     public void addTurret(int x, int y) {
         if (base.haveScore()) {
             Turret newTurret = new Turret();
-            newTurret.getImageView().setX(x);
-            newTurret.getImageView().setY(y);
+            newTurret.getImageView().setX(x - newTurret.getImageView().getImage().getWidth()/2);
+            newTurret.getImageView().setY(y - newTurret.getImageView().getImage().getHeight()/2);
+            newTurret.getBombImageView().setX(x);
+            newTurret.getBombImageView().setY(y);
             turrets.add(newTurret);
             towerHistory.addAction(newTurret, x, y);
             base.buyTurret();
@@ -98,8 +116,18 @@ public class GameState {
     public void startNextWave() {
         waveSystem.generateNextWave();
         Wave currentWave = waveSystem.getCurrentWave();
-        // Actualizar los aliens basados en la nueva oleada
         aliens = currentWave.getEnemies();
+        // Recompensar al jugador por sobrevivir la oleada
+        base.addScore(50 * waveSystem.getWaveNumber());
+    }
+    
+    // Nuevo método para manejar la muerte de aliens
+    public void handleAlienDeath(Alien alien) {
+        if (alien instanceof FastAlien) {
+            base.addScore(30);  // Más puntos por matar aliens rápidos
+        } else {
+            base.addScore(20);  // Puntos base por matar aliens lentos
+        }
     }
     
     public boolean isWaveComplete() {
@@ -109,5 +137,13 @@ public class GameState {
     
     public int getCurrentWaveNumber() {
         return waveSystem.getWaveNumber();
+    }
+    
+    public CircularQueue getEnemyQueue() {
+        return enemyQueue;
+    }
+    public void updateGame() {
+        // Llama a este método regularmente para actualizar el estado del juego
+        updateEnemyStatus();
     }
 }

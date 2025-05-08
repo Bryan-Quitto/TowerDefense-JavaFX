@@ -62,4 +62,12 @@ public class Base {
     public boolean haveScore() {
         return score != 0;
     }
+
+    /**
+     * Añade puntos al puntaje actual de la base
+     * @param amount Cantidad de puntos a añadir
+     */
+    public void addScore(int amount) {
+        this.score += amount;
+    }
 }
