@@ -10,7 +10,7 @@ public class ElectricTurret extends Turret {
         this.fileName = "./provided/res/electric_launcher.png";
         this.image = new Image(fileName);
         this.imageView.setImage(image);
-        this.bombFileName = "./provided/res/electric_bomb.gif";
+        this.bombFileName = "./provided/res/bomb.gif";
         this.bombImage = new Image(bombFileName);
         this.bombImageView.setImage(bombImage);
     }

@@ -1,9 +1,5 @@
 package characters;
-/**
- * This is a representation of the Base
- * @author Bilal Mawji
- * @version 1.0
- */
+
 public class Base {
 
     private int health;

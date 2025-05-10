@@ -2,11 +2,7 @@ package characters;
 import characters.interfaces.Health;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-/**
- * This is a representation of the Alien
- * @author Bilal Mawji
- * @version 1.0
- */
+
 public abstract class Alien implements Health {
 
     private int health;

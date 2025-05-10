@@ -1,38 +1,27 @@
 package characters;
 import java.util.Random;
-/**
- * This is a representation of the SlowAlien which is an Alien
- * @author Bilal Mawji
- * @version 1.0
- */
+
 public class SlowAlien extends Alien {
+
+    private static final String ALIEN_IMAGE_PATH = "./provided/res/Pixel-Alien-2.png";
+    private final Random rand = new Random();
+
     /**
-     * Constructor for SlowAlien; Inherited attack of 50;
-     * Calls Multi-argument constructor
+     * Constructor público que establece salud, velocidad y ruta de la imagen
      */
     public SlowAlien() {
-        this(400, 1, "./provided/res/Pixel-Alien-1.png");
-    }
-    /**
-     * Private constructor for SlowAlien; Inherited attack of 50;
-     * @param health Health of SlowAlien
-     * @param speed Speed of SlowAlien
-     * @param fileName FileName of SlowAlien Picture
-     */
-    private SlowAlien(int health, int speed, String fileName) {
-        super(400, 1, "./provided/res/Pixel-Alien-1.png");
-    }
-    /**
-     * Randomly chooses number; if greater than 9, will increase health
-     * Method inherited from Alien; Implemented from Health
-     * @param amount Amount to increase health by
-     */
-    public void increaseHealth() {
-        Random rand = new Random();
-        int temp = rand.nextInt(11);
-        if (temp > 9) {
-            increaseHealth(200);
-        }
+        super(400, 1, ALIEN_IMAGE_PATH);
     }
 
+    /**
+     * Método que aleatoriamente aumenta salud en 200 si el valor aleatorio es >9
+     */
+    @Override
+    public void increaseHealth() {
+        int temp = rand.nextInt(11);
+        if (temp > 9) {
+            super.increaseHealth(200);
+        }
+    }
 }
+

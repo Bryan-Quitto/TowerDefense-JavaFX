@@ -21,33 +21,48 @@ public class CircularQueue {
     }
 
     public void enqueue(Alien alien) {
-        if (isFull()) return;
-        rear = (rear + 1) % capacity;
-        queue[rear] = alien;
-        size++;
+    if (alien == null) {
+        System.out.println("[ERROR] Intento de añadir alien nulo a la cola");
+        return;
     }
+    if (isFull()) return;
+    rear = (rear + 1) % capacity;
+    queue[rear] = alien;
+    size++;
+}
 
     public Alien dequeue() {
-        if (isEmpty()) return null;
-        Alien alien = queue[front];
-        queue[front] = null;
+    if (isEmpty()) {
+        System.out.println("[DEBUG] Cola vacía. No se puede desencolar.");
+        return null;
+    }
+    Alien alien = queue[front];
+    if (alien == null) {
+        System.out.println("[DEBUG] Elemento nulo encontrado en la cola.");
         front = (front + 1) % capacity;
         size--;
-        return alien;
+        return null;
     }
+    System.out.println("[DEBUG] Dequeuing: " + alien);
+    queue[front] = null;
+    front = (front + 1) % capacity;
+    size--;
+    return alien;
+}
 
     public void updateStatus() {
         int newSize = 0;
         for (int i = 0; i < capacity; i++) {
-            if (queue[i] != null && queue[i].isDead()) {
-                System.out.println("Eliminando enemigo muerto de la cola: " + queue[i]);
-                queue[i] = null;
-            }
             if (queue[i] != null) {
-                newSize++;
+                if (queue[i].isDead()) {
+                    System.out.println("[DEBUG] Eliminando enemigo muerto: " + queue[i]);
+                    queue[i] = null;
+                } else {
+                    newSize++;
+                }
             }
         }
-        size = newSize;
+        size = newSize; // Actualizar tamaño real
     }
 
     public boolean isEmpty() {
@@ -71,4 +86,13 @@ public class CircularQueue {
         }
         return aliveAliens;
     }
+
+    public void clear() {
+    for (int i = 0; i < capacity; i++) {
+        queue[i] = null;
+    }
+    front = 0;
+    rear  = -1;
+    size  = 0;
+}
 }

@@ -52,10 +52,17 @@
                 </fileset>
                 <pathelement path="."/>
             </classpath>
+
+            <!-- Flags para JavaFX modules -->
             <jvmarg value="--module-path"/>
             <jvmarg value="${javafx.path}"/>
             <jvmarg value="--add-modules"/>
             <jvmarg value="javafx.controls,javafx.fxml"/>
+
+            <!-- Permitir acceso nativo y abrir paquetes internos para evitar warnings -->
+            <jvmarg value="--enable-native-access=javafx.graphics"/>
+            <jvmarg value="--add-opens=javafx.graphics/com.sun.glass.utils=ALL-UNNAMED"/>
+            <jvmarg value="--add-opens=javafx.graphics/com.sun.marlin=ALL-UNNAMED"/>
         </java>
     </target>
 

@@ -4,7 +4,7 @@ import javafx.scene.image.Image;
 
 public class FireTurret extends Turret {
     private static final String FIRE_TURRET_IMAGE = "./provided/res/fire_launcher.png";
-    private static final String FIRE_BOMB_IMAGE = "./provided/res/fire_bomb.gif";
+    private static final String FIRE_BOMB_IMAGE = "./provided/res/bomb.gif";
     
     public FireTurret() {
         super();

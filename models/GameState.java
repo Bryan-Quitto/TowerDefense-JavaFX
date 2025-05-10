@@ -3,8 +3,6 @@ package models;
 import javafx.scene.image.Image;
 import characters.Base;
 import characters.Alien;
-import characters.FastAlien;
-import characters.SlowAlien;
 import characters.Turret;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,8 +13,6 @@ import java.util.List;
 public class GameState {
     private Base base;
     private Alien[] aliens;
-    
-    // Imágenes y recursos
     private Image backgroundImage;
     private Image coveredAreaImage;
     private Image turretImage;
@@ -27,52 +23,95 @@ public class GameState {
     private WaveSystem waveSystem;
     private TowerHistory towerHistory;
     private CircularQueue enemyQueue;
-    
+
+    // Fases de la oleada
+    private boolean placingPhase = true;
+    private boolean waveActive = false;
+    private boolean waveComplete = false;
+
     public GameState() {
-        enemyQueue = new CircularQueue(10); // Adjust capacity as needed
-        initializeGameElements();
+        enemyQueue = new CircularQueue(50);
+        waveSystem = new WaveSystem();    // inicializo sistema de oleadas
+        initializeGameElements();        // genera la primera oleada (no activa hasta beginWave())
         loadResources();
-        waveSystem = new WaveSystem();
         towerHistory = new TowerHistory();
     }
-    
+
     private void initializeGameElements() {
         base = new Base();
-        aliens = new Alien[]{
-            new FastAlien(),
-            new SlowAlien()
-        };
-        
-        // Initialize aliens and add them to the circular queue
-        for (Alien alien : aliens) {
-            alien.increaseHealth();
-            enemyQueue.enqueue(alien);
+        aliens = new Alien[0]; // sin enemigos hasta empezar oleada
+    }
+
+    public void beginWave() {
+    // Generar ola 1 si es necesario
+    if (waveSystem.getWaveNumber() == 0) {
+        waveSystem.generateNextWave();
+    }
+
+    Wave currentWave = waveSystem.getCurrentWave();
+    if (currentWave == null) {
+        System.out.println("[ERROR] No hay oleada disponible");
+        return;
+    }
+
+    // Cambiar fases
+    placingPhase = false;
+    waveActive = true;
+    waveComplete = false;
+
+    // Inicializamos el arreglo de aliens pero NO los añadimos a la cola aquí
+    // La cola se maneja desde Game.spawnAliensFromWave()
+    aliens = currentWave.getEnemies();
+    System.out.println("[DEBUG] beginWave() — aliens.length = " + aliens.length);
+    System.out.println("[DEBUG] Oleada " + waveSystem.getWaveNumber() + " iniciada");
+}
+
+    public void startNextWave() {
+    waveSystem.waveCompleted(); // Elimina la oleada completada
+    waveSystem.generateNextWave(); // Genera la siguiente
+    
+    Wave currentWave = waveSystem.getCurrentWave();
+    if (currentWave == null) return;
+    
+    // Reiniciar cola de enemigos
+    aliens = currentWave.getEnemies();
+    enemyQueue = new CircularQueue(50);
+    // No añadir los aliens a la cola todavía - esto se hará en beginWave()
+    
+    // Restablecer fases
+    placingPhase = true; // Permitir colocar torres nuevamente
+    waveActive = false;
+    waveComplete = false;
+    System.out.println("[DEBUG] Preparada nueva oleada: " + waveSystem.getWaveNumber());
+}
+
+    // Actualiza estado de enemigos y detecta fin de oleada
+    public void updateGame() {
+        enemyQueue.updateStatus();
+        updateEnemyStatus();
+        if (waveActive && isWaveComplete()) {
+            waveActive = false;
+            waveComplete = true;
         }
     }
-    
-    // Add method to update enemy status
+
     public void updateEnemyStatus() {
-        enemyQueue.updateStatus();
-        // Eliminar referencias de aliens muertos en el array aliens
         for (int i = 0; i < aliens.length; i++) {
-            if (aliens[i] != null && aliens[i].isDead()) {
-                handleAlienDeath(aliens[i]); // Manejar la muerte del alien y actualizar el score
-                aliens[i].getImageView().setVisible(false); // Ocultar la imagen del enemigo
-                aliens[i] = null; // Eliminar referencia
+            Alien a = aliens[i];
+            if (a != null && a.isDead()) {
+                handleAlienDeath(a);
+                a.getImageView().setVisible(false);
+                aliens[i] = null;
             }
         }
     }
-    
-    private void loadResources() {
-        backgroundImage = new Image("./provided/res/MapCropped.png");
-        coveredAreaImage = new Image("./provided/res/MapCroppedForeground.png");
-        turretImage = new Image("./provided/res/launcher.png");
-        placementAreaImage = new Image("./provided/res/placeMapCroppedMinified.png", 1376, 736, true, true);
-        greenCursorImage = new Image("./provided/res/green.png");
-        redCursorImage = new Image("./provided/res/red.png");
-    }
-    
-    // Getters y setters
+
+    // Getters y setters de fase
+    public boolean isPlacingPhase() { return placingPhase; }
+    public boolean isWaveActive()    { return waveActive; }
+    public boolean isWaveCompletePhase() { return waveComplete; }
+
+    // Resto de getters para recursos, base, torres y cola
     public Base getBase() { return base; }
     public Alien[] getAliens() { return aliens; }
     public Image getBackgroundImage() { return backgroundImage; }
@@ -81,69 +120,65 @@ public class GameState {
     public Image getPlacementAreaImage() { return placementAreaImage; }
     public Image getGreenCursorImage() { return greenCursorImage; }
     public Image getRedCursorImage() { return redCursorImage; }
-    
+    public List<Turret> getTurrets() { return turrets; }
+    public CircularQueue getEnemyQueue() { return enemyQueue; }
+    public int getCurrentWaveNumber()  { return waveSystem.getWaveNumber(); }
+
+    private void loadResources() {
+        backgroundImage = new Image("./provided/res/MapCropped.png");
+        coveredAreaImage = new Image("./provided/res/MapCroppedForeground.png");
+        turretImage = new Image("./provided/res/launcher.png");
+        placementAreaImage = new Image("./provided/res/placeMapCroppedMinified.png", 1376, 736, true, true);
+        greenCursorImage = new Image("./provided/res/green.png");
+        redCursorImage = new Image("./provided/res/red.png");
+    }
+
     public void addTurret(int x, int y) {
-        if (base.haveScore()) {
-            Turret newTurret = new Turret();
-            newTurret.getImageView().setX(x - newTurret.getImageView().getImage().getWidth()/2);
-            newTurret.getImageView().setY(y - newTurret.getImageView().getImage().getHeight()/2);
-            newTurret.getBombImageView().setX(x);
-            newTurret.getBombImageView().setY(y);
-            turrets.add(newTurret);
-            towerHistory.addAction(newTurret, x, y);
+        if (!placingPhase) return;
+        if (base.getScore() >= 40) {
+            Turret t = new Turret();
+            t.getImageView().setX(x - t.getImageView().getImage().getWidth()/2);
+            t.getImageView().setY(y - t.getImageView().getImage().getHeight()/2);
+            t.getBombImageView().setX(x);
+            t.getBombImageView().setY(y);
+            turrets.add(t);
+            towerHistory.addAction(t, x, y);
             base.buyTurret();
         }
     }
-    
+
     public void undoTurretPlacement() {
+        if (!placingPhase) return;
         TowerAction action = towerHistory.undo();
         if (action != null) {
-            turrets.remove(action.getTurret());
+            Turret t = action.getTurret();
+            base.addScore(t.getCost());
+            turrets.remove(t);
+            t.stopTargeting();
         }
     }
-    
+
     public void redoTurretPlacement() {
+        if (!placingPhase) return;
         TowerAction action = towerHistory.redo();
         if (action != null) {
-            turrets.add(action.getTurret());
+            Turret t = action.getTurret();
+            if (base.getScore() >= t.getCost()) {
+                base.buyTurret();
+                turrets.add(t);
+            }
         }
     }
-    
-    public List<Turret> getTurrets() {
-        return turrets;
-    }
-    
-    public void startNextWave() {
-        waveSystem.generateNextWave();
-        Wave currentWave = waveSystem.getCurrentWave();
-        aliens = currentWave.getEnemies();
-        // Recompensar al jugador por sobrevivir la oleada
-        base.addScore(50 * waveSystem.getWaveNumber());
-    }
-    
-    // Nuevo método para manejar la muerte de aliens
+
     public void handleAlienDeath(Alien alien) {
-        if (alien instanceof FastAlien) {
-            base.addScore(30);  // Más puntos por matar aliens rápidos
-        } else {
-            base.addScore(20);  // Puntos base por matar aliens lentos
-        }
     }
-    
+
     public boolean isWaveComplete() {
-        return waveSystem.getCurrentWave() != null && 
-               !waveSystem.getCurrentWave().hasMoreEnemies();
+        Wave currentWave = waveSystem.getCurrentWave();
+        return currentWave != null && !currentWave.hasMoreEnemies() && enemyQueue.isEmpty();
     }
-    
-    public int getCurrentWaveNumber() {
-        return waveSystem.getWaveNumber();
-    }
-    
-    public CircularQueue getEnemyQueue() {
-        return enemyQueue;
-    }
-    public void updateGame() {
-        // Llama a este método regularmente para actualizar el estado del juego
-        updateEnemyStatus();
-    }
+
+    public WaveSystem getWaveSystem() {
+    return waveSystem;
+}
 }

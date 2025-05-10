@@ -1,21 +1,23 @@
 import characters.Turret;
+
+import java.io.IOException;
+import models.Wave;
 import characters.Alien;
 import characters.Base;
-import javafx.animation.Animation.Status;
+import javafx.animation.KeyFrame;
 import javafx.animation.PathTransition;
-import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
 import javafx.application.Application;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
-import javafx.event.EventHandler;
+import javafx.scene.Cursor;
+import javafx.scene.ImageCursor;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelReader;
-import javafx.scene.ImageCursor;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.scene.Scene;
 import javafx.scene.shape.LineTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
@@ -24,345 +26,253 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextBoundsType;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import javafx.scene.control.Button;
 import models.GameState;
-import javafx.animation.Timeline;
-import javafx.animation.KeyFrame;
+
 /**
- * This is the driver class for the TowerDefense Game
- * @author Bilal Mawji
- * @version 1.0
+ * Driver class for the TowerDefense Game
  */
 public class Game extends Application {
     private GameState gameState;
-    private Text text;
     private Stage mainStage;
-    private Scene gameScene;
-    private Scene startScene;
-    private Scene gameOverScene;
-    
+    private Scene startScene, gameScene, gameOverScene;
+    private Text statusText; // shows health and score
+    private Text enemiesText; // shows remaining enemies
+    private Button nextWaveButton;
+    private Text waveText;
+    private Pane pane1, pane2;
+
     @Override
     public void start(Stage stage) {
         mainStage = stage;
         createStartScene();
         createGameOverScene();
-        
         mainStage.setScene(startScene);
         mainStage.setTitle("TowerDefense!!");
         mainStage.setResizable(false);
+        // Start in fullscreen
+        mainStage.setMaximized(true);
+        mainStage.setFullScreen(true);
         mainStage.show();
     }
-    
+
     private void createStartScene() {
-        Pane startRoot = new Pane();
-        startRoot.setStyle("-fx-background-color: black;");
-        startRoot.setMinSize(1376, 736);
-        
-        Text titleText = new Text("Tower Defense");
-        titleText.setFont(Font.loadFont("file:./provided/res/RetroComputer.ttf", 80));
-        titleText.setFill(Color.WHITE);
-        titleText.setX(400);
-        titleText.setY(300);
-        
-        Button startButton = new Button("Empezar");
+        Pane root = new Pane();
+        root.setStyle("-fx-background-color: black;");
+        root.setMinSize(1376, 736);
+        Text title = new Text("Tower Defense");
+        title.setFont(Font.loadFont("file:./provided/res/RetroComputer.ttf", 80));
+        title.setFill(Color.WHITE);
+        title.setX(400); title.setY(300);
+        Button startButton = new Button("Empezar Juego");
         startButton.setStyle("-fx-font-size: 40px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
-        startButton.setLayoutX(600);
-        startButton.setLayoutY(400);
+        startButton.setLayoutX(600); startButton.setLayoutY(400);
         startButton.setOnAction(e -> startGame());
-        
-        startRoot.getChildren().addAll(titleText, startButton);
-        startScene = new Scene(startRoot);
+        root.getChildren().addAll(title, startButton);
+        startScene = new Scene(root);
     }
-    
+
     private void createGameOverScene() {
-        Pane gameOverRoot = new Pane();
-        gameOverRoot.setStyle("-fx-background-color: black;");
-        gameOverRoot.setMinSize(1376, 736);
-        
+        Pane root = new Pane();
+        root.setStyle("-fx-background-color: black;");
+        root.setMinSize(1376, 736);
         Text gameOverText = new Text("Game Over");
         gameOverText.setFont(Font.loadFont("file:./provided/res/RetroComputer.ttf", 80));
         gameOverText.setFill(Color.RED);
-        gameOverText.setX(500);
-        gameOverText.setY(300);
-        
-        Button restartButton = new Button("Volver a Empezar");
-        restartButton.setStyle("-fx-font-size: 40px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
-        restartButton.setLayoutX(550);
-        restartButton.setLayoutY(400);
-        restartButton.setOnAction(e -> startGame());
-        
-        gameOverRoot.getChildren().addAll(gameOverText, restartButton);
-        gameOverScene = new Scene(gameOverRoot);
+        gameOverText.setX(500); gameOverText.setY(300);
+        Button restart = new Button("Volver a Empezar");
+        restart.setStyle("-fx-font-size: 40px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
+        restart.setLayoutX(550); restart.setLayoutY(400);
+        restart.setOnAction(e -> startGame());
+        root.getChildren().addAll(gameOverText, restart);
+        gameOverScene = new Scene(root);
     }
-    
+
     private void startGame() {
         gameState = new GameState();
-        createGameScene();  // Recrear la escena del juego con el nuevo estado
-        
-        // Crear un Timeline para actualizar el estado del juego regularmente
+        createGameScene();
+        // Game update loop
         Timeline gameLoop = new Timeline(new KeyFrame(Duration.millis(100), e -> {
             gameState.updateGame();
+            updateStatusText();
+            updateEnemiesText();
+            if (gameState.isWaveCompletePhase()) {
+                nextWaveButton.setDisable(false);
+                nextWaveButton.setText("Siguiente Oleada");
+            }
         }));
         gameLoop.setCycleCount(Timeline.INDEFINITE);
         gameLoop.play();
-        
         mainStage.setScene(gameScene);
     }
-    
-    private void createGameScene() {
-        Pane root = new Pane();
-        Pane pane1 = new Pane();
-        Pane pane2 = new Pane();
-        
-        // Usar gameState para acceder a los elementos del juego
-        Base base = gameState.getBase();
-        Alien[] aliens = gameState.getAliens();
-        
-        // Background
-        ImageView imageBG = new ImageView(gameState.getBackgroundImage());
-        
-        // Covered Areas
-        ImageView covered2 = new ImageView(gameState.getCoveredAreaImage());
-        
-        // Turret Areas
-        Image areas = gameState.getPlacementAreaImage();
-        ImageView areas2 = new ImageView(areas);
-        
-        // ImageCursor
-        ImageCursor greenCursor = new ImageCursor(gameState.getGreenCursorImage());
-        ImageCursor redCursor = new ImageCursor(gameState.getRedCursorImage());
-        
-        // Aliens ImageViews
-        ImageView alien2 = aliens[0].getImageView();
-        ImageView alien3 = aliens[1].getImageView();
-        
-        // Text
-        text = new Text("Health: " + base.getHealth() + "\nScore: " + base.getScore());
-        text.setBoundsType(TextBoundsType.VISUAL);
-        text.setFont(Font.loadFont("file:./provided/res/RetroComputer.ttf", 50));
-        
-        // Path
-        Path p1 = createPath();
-        
-        // Root
-        root.setMinSize(1376, 736);
-        root.getChildren().addAll(imageBG, pane1);
-        
-        // Pane1
-        pane1.setMinSize(1376, 736);
-        pane1.getChildren().addAll(text, alien2, alien3, covered2, pane2);
-        text.relocate(325, 20);
-        
-        // Pane2
-        areas2.setFitWidth(1376);
-        areas2.setFitHeight(736);
-        pane2.setMinSize(1376, 736);
-        
-        // Cambiar esta línea
-        // Por esta línea
-        gameScene = new Scene(root);
-        
-        // Y actualizar todas las referencias de 'scene' a 'gameScene'
-        pane2.setOnMouseMoved(new EventHandler<MouseEvent>() {
-            @Override public void handle(MouseEvent event) {
-                int mouseX = ((int) event.getX());
-                int mouseY = ((int) event.getY());
-                PixelReader placePixels = areas.getPixelReader();
-                try {
-                    if ((1376 - mouseX) < 1376 && (736 - mouseY) < 736) {
-                        if (!placePixels.getColor(mouseX, mouseY)
-                            .equals(Color.BLACK)) {
-                            if (!placePixels.getColor(mouseX + 5, mouseY + 5)
-                                .equals(Color.BLACK)) {
-                                if (!placePixels.getColor(mouseX, mouseY + 5)
-                                    .equals(Color.BLACK)) {
-                                    if (!placePixels
-                                        .getColor(mouseX + 5, mouseY)
-                                        .equals(Color.BLACK)) {
-                                        gameScene
-                                        .setCursor(greenCursor);
-                                    }
-                                }
-                            }
-                            } else {
-                                gameScene.setCursor(redCursor);
-                        }
-                    }
-                } catch (IndexOutOfBoundsException e) {
-                    System.out.println("Out of bounds");
-                }
-            }
-        });
-        
-        pane2.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override public void handle(MouseEvent event) {
-                int mouseX = ((int) event.getX());
-                int mouseY = ((int) event.getY());
-                if (gameScene.getCursor().equals(greenCursor) && base.haveScore()) {
-                    // Crear la torre y registrarla en el GameState
-                    gameState.addTurret(mouseX, mouseY);
-                    Turret t = gameState.getTurrets().get(gameState.getTurrets().size() - 1);
-                    pane2.getChildren().addAll(t.getImageView(), t.getBombImageView());
-                    
-                    // Iniciar el sistema de targeting de la torreta
-                    t.startTargeting(gameState.getEnemyQueue());
-                    
-                    base.buyTurret();
-                    text.setText("Health: " + base.getHealth() + "\nScore: " + base.getScore());
-                }
-            }
-        });
 
-        // PathTransition
-        PauseTransition pause = new PauseTransition(Duration.millis(5000));
-        PathTransition pt = new PathTransition(Duration.millis(20000), p1, alien2);
-        PathTransition pt2 = new PathTransition(Duration.millis(35000), p1, alien3);
+    private void createGameScene() {
+    Pane root = new Pane();
+    pane1 = new Pane();
+    pane2 = new Pane();
+    // Background and UI
+    ImageView bg = new ImageView(gameState.getBackgroundImage());
+    ImageView covered = new ImageView(gameState.getCoveredAreaImage());
+    statusText = new Text(); statusText.setFill(Color.WHITE);
+    statusText.setBoundsType(TextBoundsType.VISUAL);
+    statusText.setFont(Font.loadFont("file:./provided/res/RetroComputer.ttf", 50));
+    waveText = new Text(); waveText.setFont(Font.loadFont("file:./provided/res/RetroComputer.ttf", 30));
+    waveText.setFill(Color.WHITE); // Añadir color blanco si es necesario
+    enemiesText = new Text(); enemiesText.setFill(Color.WHITE);
+    enemiesText.setFont(Font.loadFont("file:./provided/res/RetroComputer.ttf", 30));
+    updateStatusText(); updateWaveText();
+    try { updateEnemiesText(); } catch (Exception ignored) {}
+    root.setMinSize(1376, 736);
+    root.getChildren().addAll(bg, pane1);
+    pane1.setMinSize(1376, 736);
+    pane1.getChildren().addAll(statusText, covered, pane2, waveText, enemiesText);
+    statusText.setX(325); statusText.setY(40);
+    // Posicionar waveText y enemiesText en la esquina inferior derecha
+    waveText.setX(850); 
+    waveText.setY(550);  // Ajustar Y para arriba del botón
+    enemiesText.setX(850);
+    enemiesText.setY(600); 
+    pane2.setMinSize(1376, 736);
+    // Mouse events
+    Image placementMask = gameState.getPlacementAreaImage();
+    Cursor green = createCursor(gameState.getGreenCursorImage(), "Green cursor load failed");
+    Cursor red   = createCursor(gameState.getRedCursorImage(),   "Red cursor load failed");
+    pane2.setOnMouseMoved(e -> handleMouseMove(e, placementMask, green, red));
+    pane2.setOnMouseClicked(e -> handleMouseClick(e, green));
+    // Next wave button
+    nextWaveButton = new Button("Empezar Oleada");
+    nextWaveButton.setStyle("-fx-font-size: 20px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
+    nextWaveButton.layoutXProperty().bind(root.widthProperty().subtract(nextWaveButton.widthProperty()).subtract(20));
+    nextWaveButton.layoutYProperty().bind(root.heightProperty().subtract(nextWaveButton.heightProperty()).subtract(20));
+    nextWaveButton.setOnAction(e -> handleNextWaveAction());
+    pane1.getChildren().add(nextWaveButton);
+    root.setFocusTraversable(true); root.requestFocus();
+    gameScene = new Scene(root);
+}
+
+    private void handleNextWaveAction() {
+    if (gameState.isPlacingPhase()) {
+        gameState.beginWave();
+        spawnAliensFromWave(gameState.getWaveSystem().getCurrentWave());
+        nextWaveButton.setDisable(true);
+        nextWaveButton.setText("Siguiente oleada");
+    } else if (gameState.isWaveCompletePhase()) {
+        int numT = gameState.getTurrets().size();
+        int refund = numT * 40;
+        int bonus  = 40;
+        System.out.println("[DEBUG] Torretas: " + numT + ", refund=" + refund + ", bonus=" + bonus);
+        gameState.getBase().addScore(refund + bonus);
         
-        pt.statusProperty().addListener(new ChangeListener<Status>() {
-            @Override
-            public void changed(ObservableValue<? extends Status> observableValue, 
-                              Status oldValue, Status newValue) {
-                if (newValue == Status.STOPPED) {
-                    // Crear un Timeline para daño continuo
-                    Timeline damageTimeline = new Timeline(
-                        new KeyFrame(Duration.seconds(1), e -> {
-                            base.subHealth(aliens[0].getAttack());
-                            text.setText("Health: " + base.getHealth() + "\nScore: " + base.getScore());
-                            checkGameOver();
-                        })
-                    );
-                    damageTimeline.setCycleCount(Timeline.INDEFINITE);
-                    damageTimeline.play();
-                }
-            }
-        });
+        // Limpiar elementos visuales de las torretas
+        pane2.getChildren().clear();
         
-        pt2.statusProperty().addListener(new ChangeListener<Status>() {
-            @Override
-            public void changed(ObservableValue<? extends Status> observableValue, 
-                              Status oldValue, Status newValue) {
-                if (newValue == Status.STOPPED) {
-                    Timeline damageTimeline = new Timeline(
-                        new KeyFrame(Duration.seconds(1), e -> {
-                            int damage = aliens[0].getAttack();
-                            // Reducir el daño basado en las torretas cercanas
-                            if (hasTurretsNearBase()) {
-                                damage = (int)(damage * 0.8); // 20% de reducción de daño
-                            }
-                            base.subHealth(damage);
-                            text.setText("Health: " + base.getHealth() + "\nScore: " + base.getScore());
-                            checkGameOver();
-                        })
-                    );
-                    damageTimeline.setCycleCount(Timeline.INDEFINITE);
-                    damageTimeline.play();
-                }
-            }
-        });
+        // Detener la lógica de targeting de las torretas antes de eliminarlas
+        for (Turret t : gameState.getTurrets()) {
+            t.stopTargeting();
+        }
+        gameState.getTurrets().clear();
         
-        pt.play();
-        pause.play();
-        pt2.play();
-        
-        // Modificar la creación del botón de siguiente oleada y el texto
-        Button nextWaveButton = new Button("Siguiente Oleada");
-        nextWaveButton.setStyle("-fx-font-size: 20px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
-        nextWaveButton.setOnAction(_ -> {
-            if (gameState.isWaveComplete()) {
-                gameState.startNextWave();
-                updateWaveDisplay();
-                
-                // Reiniciar las animaciones para los nuevos aliens
-                Alien[] currentWaveAliens = gameState.getAliens();
-                for (int i = 0; i < currentWaveAliens.length; i++) {
-                    PathTransition alienPath = new PathTransition(
-                        Duration.millis(20000 + (i * 15000)), 
-                        createPath(), 
-                        currentWaveAliens[i].getImageView()
-                    );
-                    
-                    final int alienIndex = i; // Crear una variable final para el índice
-                    alienPath.statusProperty().addListener((_, _, newVal) -> {
-                        if (newVal == Status.STOPPED) {
-                            base.subHealth(currentWaveAliens[alienIndex].getAttack());
-                            updateWaveDisplay();
-                        }
-                    });
-                    
-                    alienPath.play();
-                }
-            }
-        });
-        
-        // Actualizar el texto para mostrar la información de la oleada
-        Text waveText = new Text("Oleada: " + gameState.getCurrentWaveNumber());
-        waveText.setFont(Font.loadFont("file:./provided/res/RetroComputer.ttf", 30));
-        
-        // Posicionar y agregar los elementos al layout
-        nextWaveButton.setLayoutX(325);
-        nextWaveButton.setLayoutY(100);
-        waveText.setLayoutX(325);
-        waveText.setLayoutY(150);
-        
-        pane1.getChildren().addAll(nextWaveButton, waveText);
-        pt.play();
-        pause.play();
-        pt2.play();
+        gameState.startNextWave();
+        updateWaveText();
+        updateEnemiesText();
+        nextWaveButton.setDisable(false);
+        nextWaveButton.setText("Empezar oleada");
+    }
     }
 
-    /**
-     * Makes a path for Aliens to travel on
-     * @return Path Path for Aliens
-     */
-    public Path createPath() {
+    private void spawnAliensFromWave(Wave wave) {
+    if (wave == null) return;
+    System.out.println("[DEBUG] spawnAliensFromWave — hasMore=" + wave.hasMoreEnemies());
+    gameState.getEnemyQueue().clear(); // Limpiar cola completamente
+    Path path = createPath();
+    int count = 0, idx = 0;
+    Alien a;
+    while ((a = wave.getNextEnemy()) != null) {
+        final Alien alien = a;
+        pane1.getChildren().add(alien.getImageView());
+        gameState.getEnemyQueue().enqueue(alien);
+        count++;
+        PathTransition pt = new PathTransition(
+            Duration.millis(20000 + (idx++) * 15000), path, alien.getImageView()
+        );
+        pt.setOnFinished(e -> {
+            pane1.getChildren().remove(alien.getImageView());
+            if (!alien.isDead()) {
+                gameState.getBase().subHealth(alien.getAttack());
+                updateStatusText();
+                System.out.println("[DEBUG] Base damaged: " + alien.getAttack() + ", health=" + gameState.getBase().getHealth());
+                if (gameState.getBase().getHealth() <= 0) mainStage.setScene(gameOverScene);
+            } else {
+                System.out.println("[DEBUG] Alien muerto antes de llegar");
+            }
+            gameState.getEnemyQueue().dequeue();
+            updateEnemiesText();
+        });
+        pt.play();
+    }
+    System.out.println("[DEBUG] enemigos encolados = " + count);
+}
+
+    private void handleMouseClick(MouseEvent e, Cursor green) {
+        try {
+            if (gameScene.getCursor() == green && gameState.isPlacingPhase()) {
+                int x = (int) e.getX(), y = (int) e.getY();
+                gameState.addTurret(x, y);
+                Turret t = gameState.getTurrets().get(gameState.getTurrets().size()-1);
+                pane2.getChildren().addAll(t.getImageView(), t.getBombImageView());
+                t.startTargeting(gameState.getEnemyQueue());
+                updateStatusText();
+                updateEnemiesText();
+            }
+        } catch (Exception ex) { ex.printStackTrace(); }
+    }
+
+    private void handleMouseMove(MouseEvent e, Image mask, Cursor green, Cursor red) {
+        if (mask==null) return;
+        PixelReader pr = mask.getPixelReader();
+        try { gameScene.setCursor(!pr.getColor((int)e.getX(),(int)e.getY()).equals(Color.BLACK)?green:red); }
+        catch (IndexOutOfBoundsException ex) {}
+    }
+
+    private Cursor createCursor(Image img, String errMsg) {
+        try { if (img==null||img.isError()) throw new Exception(errMsg); return new ImageCursor(img);} 
+        catch (Exception ex) { return Cursor.DEFAULT; }
+    }
+
+    private void updateStatusText() {
+        statusText.setText("Health: " + gameState.getBase().getHealth() + "\nScore: " + gameState.getBase().getScore());
+    }
+
+    private void updateEnemiesText() {
+    try {
+        Wave currentWave = gameState.getWaveSystem().getCurrentWave();
+        int remaining = gameState.getEnemyQueue().getSize();
+        
+        // Solo contar los enemigos de la oleada si está activa
+        if (currentWave != null && gameState.isWaveActive() && currentWave.hasMoreEnemies()) {
+            remaining += currentWave.getEnemies().length;
+        }
+        enemiesText.setText("Enemigos vivos: " + remaining);
+    } catch (Exception e) {
+        enemiesText.setText("Enemigos restantes: N/A");
+    }
+}
+
+    private void updateWaveText() {
+        waveText.setText("Oleada: " + gameState.getCurrentWaveNumber());
+    }
+
+    private Path createPath() {
         Path path = new Path();
-        MoveTo spawn = new MoveTo(6.0, 430.0);
-        LineTo line1 = new LineTo(85.0, 430.0);
-        LineTo line2 = new LineTo(85.0, 80.0);
-        LineTo line3 = new LineTo(265.0, 80.0);
-        LineTo line4 = new LineTo(265.0, 682.5);
-        LineTo line5 = new LineTo(350.0, 682.5);
-        LineTo line6 = new LineTo(350.0, 600.0);
-        LineTo line7 = new LineTo(800.0, 600.0);
-        LineTo line8 = new LineTo(800.0, 425.5);
-        LineTo line9 = new LineTo(1121.0, 425.5);
-        LineTo line10 = new LineTo(1121.0, 300.0);
-        path.getElements().addAll(spawn, line1, line2, line3, line4, line5,
-            line6, line7, line8, line9, line10);
+        path.getElements().addAll(
+            new MoveTo(6,430), new LineTo(85,430), new LineTo(85,80),
+            new LineTo(265,80), new LineTo(265,682.5), new LineTo(350,682.5),
+            new LineTo(350,600), new LineTo(800,600), new LineTo(800,425.5),
+            new LineTo(1121,425.5), new LineTo(1121,300)
+        );
         return path;
     }
-    
-    private void updateWaveDisplay() {
-        text.setText(String.format("Health: %d\nScore: %d\nOleada: %d", 
-            gameState.getBase().getHealth(),
-            gameState.getBase().getScore(),
-            gameState.getCurrentWaveNumber()
-        ));
-    }
-    
-    
-    private void checkGameOver() {
-        if (gameState.getBase().getHealth() <= 0) {
-            mainStage.setScene(gameOverScene);
-        }
-    }
-    
-    private boolean hasTurretsNearBase() {
-        for (Turret turret : gameState.getTurrets()) {
-            double distance = calculateDistanceToBase(turret);
-            if (distance < 200) { // 200 píxeles de rango
-                return true;
-            }
-        }
-        return false;
-    }
 
-    private double calculateDistanceToBase(Turret turret) {
-        // Posición de la base (ajustar según tu implementación)
-        double baseX = 1121.0;
-        double baseY = 300.0;
-        double turretX = turret.getImageView().getX();
-        double turretY = turret.getImageView().getY();
-        return Math.sqrt(Math.pow(baseX - turretX, 2) + Math.pow(baseY - turretY, 2));
+    public static void main(String[] args) {
+        launch(args);
     }
 }

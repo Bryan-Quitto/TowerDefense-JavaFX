@@ -9,6 +9,7 @@ import javafx.util.Duration;
 import models.CircularQueue;
 import javafx.animation.Timeline;
 import javafx.animation.KeyFrame; 
+import java.util.List;
 
 public class Turret {
 
@@ -29,8 +30,8 @@ public class Turret {
 
     public Turret() {
         this.attack = 50;
-        this.cost = 40;
-        this.range = 500.0;
+        this.cost = 100;
+        this.range = 300.0;
         this.fileName = "./provided/res/launcher.png";
         this.image = new Image(fileName);
         this.imageView = new ImageView(image);
@@ -126,19 +127,18 @@ public class Turret {
      * Attacks a Alien a; Alien a loses health equal to attack of Turret
      * @param a Alien that is attacked by Turret
      */
-    /**
-     * Calcula la distancia entre la torre y un alien
-     * @param a Alien objetivo
-     * @return distancia en píxeles
-     */
-    public double calculateDistance(Alien a) {
-        double turretX = this.imageView.getX();
-        double turretY = this.imageView.getY();
-        double alienX = a.getImageView().getX();
-        double alienY = a.getImageView().getY();
-        
-        return Math.sqrt(Math.pow(turretX - alienX, 2) + Math.pow(turretY - alienY, 2));
-    }
+/**
+ * Distancia euclidiana desde el centro de la torreta al centro del alien.
+ */
+public double calculateDistance(Alien a) {
+    // Centro de la torre
+    double turretCenterX = imageView.getX() + imageView.getImage().getWidth() / 2.0;
+    double turretCenterY = imageView.getY() + imageView.getImage().getHeight() / 2.0;
+    // Centro del alien
+    double alienCenterX  = a.getImageView().getX() + a.getImageView().getImage().getWidth() / 2.0;
+    double alienCenterY  = a.getImageView().getY() + a.getImageView().getImage().getHeight() / 2.0;
+    return Math.hypot(turretCenterX - alienCenterX, turretCenterY - alienCenterY);
+}
 
     /**
      * Verifica si un alien está dentro del rango de ataque
@@ -146,8 +146,11 @@ public class Turret {
      * @return true si está en rango, false si no
      */
     public boolean isInRange(Alien a) {
-        return calculateDistance(a) <= this.range;
-    }
+    double dist = calculateDistance(a);
+    System.out.println("[DEBUG] Distancia a alien: " + String.format("%.1f", dist) +
+                       "  —  rango: " + range);
+    return dist <= this.range;
+}
 
     /**
      * Ataca a un Alien si está dentro del rango
@@ -224,25 +227,26 @@ public class Turret {
     }
     
     public void startTargeting(CircularQueue enemyQueue) {
-        targetingTimeline = new Timeline(
-            new KeyFrame(Duration.millis(500), e -> {
-                updateTarget(enemyQueue);
-            })
-        );
-        targetingTimeline.setCycleCount(Timeline.INDEFINITE);
-        targetingTimeline.play();
-    }
+    
+    targetingTimeline = new Timeline(
+        new KeyFrame(Duration.millis(500), e -> updateTarget(enemyQueue))
+    );
+    targetingTimeline.setCycleCount(Timeline.INDEFINITE);
+    targetingTimeline.play();
+}
     
     private void updateTarget(CircularQueue enemyQueue) {
-        // Si el objetivo actual está muerto o fuera de rango, buscar uno nuevo
-        if (currentTarget == null || currentTarget.isDead() || !isInRange(currentTarget)) {
-            currentTarget = findClosestAlien(enemyQueue);
-        }
-        // Si hay un objetivo válido, atacar en cada ciclo
-        if (currentTarget != null && !currentTarget.isDead() && isInRange(currentTarget)) {
-            attack(currentTarget);
-        }
+    List<Alien> vivos = enemyQueue.getAliveAliens();
+    System.out.println("[DEBUG] updateTarget() — enemigos vivos en cola: " + vivos.size());
+    // resto de tu lógica...
+    if (currentTarget == null || currentTarget.isDead() || !isInRange(currentTarget)) {
+        currentTarget = findClosestAlien(enemyQueue);
     }
+    if (currentTarget != null && !currentTarget.isDead() && isInRange(currentTarget)) {
+        System.out.println("[DEBUG] Atacando a: " + currentTarget + "  —  hp previo: " + currentTarget.getHealth());
+        attack(currentTarget);
+    }
+}
     
     private Alien findClosestAlien(CircularQueue enemyQueue) {
         double minDistance = Double.MAX_VALUE;
