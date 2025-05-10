@@ -31,7 +31,7 @@ public class Turret {
     public Turret() {
         this.attack = 50;
         this.cost = 100;
-        this.range = 300.0;
+        this.range = 500.0;
         this.fileName = "./provided/res/launcher.png";
         this.image = new Image(fileName);
         this.imageView = new ImageView(image);

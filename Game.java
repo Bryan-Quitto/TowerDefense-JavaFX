@@ -1,9 +1,7 @@
 import characters.Turret;
 
-import java.io.IOException;
 import models.Wave;
 import characters.Alien;
-import characters.Base;
 import javafx.animation.KeyFrame;
 import javafx.animation.PathTransition;
 import javafx.animation.Timeline;
