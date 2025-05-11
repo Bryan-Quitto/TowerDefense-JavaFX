@@ -157,7 +157,7 @@ private void createWinScene() {
 
             // Sino, habilitar siguiente oleada normalmente
             nextWaveButton.setDisable(false);
-            nextWaveButton.setText("Siguiente Oleada");
+            nextWaveButton.setText("Siguiente oleada");
         }
     }));
     gameLoop.setCycleCount(Timeline.INDEFINITE);
@@ -217,7 +217,7 @@ private void createWinScene() {
         pane2.setOnMouseClicked(e -> handleMouseClick(e, green));
         
         // Next wave button
-        nextWaveButton = new Button("Empezar Oleada");
+        nextWaveButton = new Button("Empezar oleada");
         nextWaveButton.setStyle("-fx-font-size: 20px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
         nextWaveButton.layoutXProperty().bind(root.widthProperty().subtract(nextWaveButton.widthProperty()).subtract(50));
         nextWaveButton.layoutYProperty().bind(root.heightProperty().subtract(nextWaveButton.heightProperty()).subtract(40));

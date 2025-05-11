@@ -10,7 +10,7 @@ public class WaveSystem {
 
     public WaveSystem() {
         waveQueue = new LinkedList<>();
-        currentWaveNumber = 0;
+        currentWaveNumber = 1;
     }
 
     /**
