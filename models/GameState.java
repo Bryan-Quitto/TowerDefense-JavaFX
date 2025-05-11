@@ -193,27 +193,35 @@ public class GameState {
     }
 
     public void undoTurretPlacement() {
-        if (!placingPhase) return;
-        TowerAction action = towerHistory.undo();
-        if (action != null) {
-            Turret t = action.getTurret();
-            base.addScore(t.getCost());
-            turrets.remove(t);
-            t.stopTargeting();
-        }
-    }
+    // Solo se permite deshacer durante la fase de colocación
+    if (!placingPhase) return;
 
-    public void redoTurretPlacement() {
-        if (!placingPhase) return;
-        TowerAction action = towerHistory.redo();
-        if (action != null) {
-            Turret t = action.getTurret();
-            if (base.getScore() >= t.getCost()) {
-                base.subScore(t.getCost());
-                turrets.add(t);
-            }
+    TowerAction action = towerHistory.undo();
+    if (action != null) {
+        Turret t = action.getTurret();
+        base.addScore(t.getCost());
+        turrets.remove(t);
+        t.stopTargeting();
+    }
+}
+
+public void redoTurretPlacement() {
+    // Solo se permite rehacer durante la fase de colocación
+    if (!placingPhase) return;
+
+    TowerAction action = towerHistory.redo();
+    if (action != null) {
+        Turret t = action.getTurret();
+        if (base.getScore() >= t.getCost()) {
+            base.subScore(t.getCost());
+            turrets.add(t);
         }
     }
+}
+
+public TowerHistory getTowerHistory() {
+    return towerHistory;
+}
 
     public void handleAlienDeath(Alien alien) {
         // Recompensar al jugador con puntos por matar un alien

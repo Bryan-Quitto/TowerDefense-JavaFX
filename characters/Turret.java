@@ -8,8 +8,8 @@ import javafx.scene.shape.Path;
 import javafx.util.Duration;  
 import models.CircularQueue;
 import javafx.animation.Timeline;
+import javafx.geometry.Bounds;
 import javafx.animation.KeyFrame; 
-import java.util.List;
 
 public class Turret {
 
@@ -31,7 +31,7 @@ public class Turret {
     public Turret() {
         this.attack = 50;
         this.cost = 40;
-        this.range = 500.0;
+        this.range = 350.0;
         this.fileName = "./provided/res/launcher.png";
         this.image = new Image(fileName);
         this.imageView = new ImageView(image);
@@ -136,12 +136,15 @@ public double getRange() {
  * Distancia euclidiana desde el centro de la torreta al centro del alien.
  */
 public double calculateDistance(Alien a) {
-    // Centro de la torre
-    double turretCenterX = imageView.getX() + imageView.getImage().getWidth() / 2.0;
-    double turretCenterY = imageView.getY() + imageView.getImage().getHeight() / 2.0;
-    // Centro del alien
-    double alienCenterX  = a.getImageView().getX() + a.getImageView().getImage().getWidth() / 2.0;
-    double alienCenterY  = a.getImageView().getY() + a.getImageView().getImage().getHeight() / 2.0;
+    // Centros en sistema de coordenadas de la escena
+    Bounds turretBounds = imageView.getBoundsInParent();
+    double turretCenterX = turretBounds.getMinX() + turretBounds.getWidth() / 2.0;
+    double turretCenterY = turretBounds.getMinY() + turretBounds.getHeight() / 2.0;
+
+    Bounds alienBounds = a.getImageView().getBoundsInParent();
+    double alienCenterX  = alienBounds.getMinX()  + alienBounds.getWidth()  / 2.0;
+    double alienCenterY  = alienBounds.getMinY()  + alienBounds.getHeight() / 2.0;
+
     return Math.hypot(turretCenterX - alienCenterX, turretCenterY - alienCenterY);
 }
 
@@ -241,14 +244,14 @@ public double calculateDistance(Alien a) {
 }
     
     private void updateTarget(CircularQueue enemyQueue) {
-    List<Alien> vivos = enemyQueue.getAliveAliens();
-    System.out.println("[DEBUG] updateTarget() — enemigos vivos en cola: " + vivos.size());
-    // resto de tu lógica...
+    // elige de nuevo el más cercano (aunque ahora esté fuera de rango)
     if (currentTarget == null || currentTarget.isDead() || !isInRange(currentTarget)) {
         currentTarget = findClosestAlien(enemyQueue);
     }
-    if (currentTarget != null && !currentTarget.isDead() && isInRange(currentTarget)) {
-        System.out.println("[DEBUG] Atacando a: " + currentTarget + "  —  hp previo: " + currentTarget.getHealth());
+    // Sólo si el objetivo actual existe y está AHORA en rango, lo atacas
+    if (currentTarget != null && isInRange(currentTarget)) {
+        System.out.println("[DEBUG] Atacando a: " + currentTarget +
+                           "  —  hp previo: " + currentTarget.getHealth());
         attack(currentTarget);
     }
 }
@@ -256,10 +259,8 @@ public double calculateDistance(Alien a) {
     private Alien findClosestAlien(CircularQueue enemyQueue) {
         double minDistance = Double.MAX_VALUE;
         Alien closest = null;
-        
-        // Iterar sobre la cola circular de enemigos
         for (Alien alien : enemyQueue.getAliveAliens()) {
-            if (!alien.isDead() && isInRange(alien)) {
+            if (!alien.isDead()) {
                 double distance = calculateDistance(alien);
                 if (distance < minDistance) {
                     minDistance = distance;

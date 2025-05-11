@@ -12,6 +12,9 @@ import javafx.scene.control.Button;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelReader;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
@@ -28,6 +31,7 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.geometry.Pos;
 import models.GameState;
+import models.TowerAction;
 
 /**
  * Driver class for the TowerDefense Game
@@ -221,7 +225,40 @@ private void createWinScene() {
         pane1.getChildren().add(nextWaveButton);
         root.setFocusTraversable(true); root.requestFocus();
         gameScene = new Scene(root);
+        gameScene.setOnKeyPressed(event -> {
+    KeyCombination undoComb = new KeyCodeCombination(KeyCode.Z, KeyCombination.CONTROL_DOWN);
+    KeyCombination redoComb = new KeyCodeCombination(KeyCode.Y, KeyCombination.CONTROL_DOWN);
+    if (undoComb.match(event)) {
+        handleUndo();
+    } else if (redoComb.match(event)) {
+        handleRedo();
     }
+});
+    }
+    
+private void handleUndo() {
+    gameState.undoTurretPlacement();
+    // Actualiza la UI
+    pane2.getChildren().clear();
+    for (Turret t : gameState.getTurrets()) {
+        pane2.getChildren().addAll(t.getImageView(), t.getBombImageView());
+    }
+    pane2.getChildren().add(rangeIndicator);
+    updateStatusText();
+    updateEnemiesText();
+}
+
+private void handleRedo() {
+    gameState.redoTurretPlacement();
+    // Actualiza la UI igual que en undo
+    pane2.getChildren().clear();
+    for (Turret t : gameState.getTurrets()) {
+        pane2.getChildren().addAll(t.getImageView(), t.getBombImageView());
+    }
+    pane2.getChildren().add(rangeIndicator);
+    updateStatusText();
+    updateEnemiesText();
+}
     
     // Método para actualizar el indicador de rango cuando el mouse se mueve
     private void updateRangeIndicator(double x, double y) {
@@ -236,15 +273,15 @@ private void createWinScene() {
         
         switch (selectedTurretType) {
             case "standard":
-                radius = 310; // Radio para torre estándar
+                radius = 350; // Radio para torre estándar
                 rangeColor = Color.YELLOW;
                 break;
             case "electric":
-                radius = 620; // Radio para torre eléctrica
+                radius = 700; // Radio para torre eléctrica
                 rangeColor = Color.CYAN;
                 break;
             case "fire":
-                radius = 310; // Radio para torre de fuego
+                radius = 250; // Radio para torre de fuego
                 rangeColor = Color.ORANGE;
                 break;
         }
