@@ -7,6 +7,7 @@ import java.util.Random;
  */
 public class FastAlien extends Alien {
     private final Random rand = new Random();
+    // Cambiado a una imagen que visualmente represente mejor a un alien rápido
     private static final String ALIEN_IMAGE_PATH = "./provided/res/Pixel-Alien-7.png";
 
     /**
@@ -14,7 +15,8 @@ public class FastAlien extends Alien {
      * Calls Multi-argument constructor
      */
     public FastAlien() {
-        this(200, 3, ALIEN_IMAGE_PATH);
+        // Velocidad aumentada de 3 a 6
+        this(200, 6, ALIEN_IMAGE_PATH);
     }
 
     /**

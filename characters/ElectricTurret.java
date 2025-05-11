@@ -5,7 +5,7 @@ public class ElectricTurret extends Turret {
     public ElectricTurret() {
         super();
         this.attack = 40;
-        this.cost = 50;
+        this.cost = 60;
         this.range = 1000.0;
         this.fileName = "./provided/res/electric_launcher.png";
         this.image = new Image(fileName);

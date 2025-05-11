@@ -30,7 +30,7 @@ public class Turret {
 
     public Turret() {
         this.attack = 50;
-        this.cost = 100;
+        this.cost = 40;
         this.range = 500.0;
         this.fileName = "./provided/res/launcher.png";
         this.image = new Image(fileName);
@@ -80,6 +80,11 @@ public class Turret {
     public int getCost() {
         return cost;
     }
+
+/** @return el rango de ataque de la torre en píxeles */
+public double getRange() {
+    return range;
+}
 
     /**
      * @return fileName of Turret
@@ -271,4 +276,5 @@ public double calculateDistance(Alien a) {
             targetingTimeline.stop();
         }
     }
+
 }

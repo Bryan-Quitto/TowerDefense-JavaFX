@@ -66,4 +66,12 @@ public class Base {
     public void addScore(int amount) {
         this.score += amount;
     }
+
+    /**
+ * Resta puntos al puntaje actual de la base
+ * @param amount Cantidad de puntos a restar
+ */
+public void subScore(int amount) {
+    this.score = (this.score - amount < 0) ? 0 : (this.score - amount);
+}
 }

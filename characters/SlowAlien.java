@@ -2,7 +2,8 @@ package characters;
 import java.util.Random;
 
 public class SlowAlien extends Alien {
-
+    
+    // Cambiado a una imagen que visualmente represente mejor a un alien lento
     private static final String ALIEN_IMAGE_PATH = "./provided/res/Pixel-Alien-2.png";
     private final Random rand = new Random();
 
@@ -10,7 +11,8 @@ public class SlowAlien extends Alien {
      * Constructor público que establece salud, velocidad y ruta de la imagen
      */
     public SlowAlien() {
-        super(400, 1, ALIEN_IMAGE_PATH);
+        // Velocidad aumentada de 1 a 2
+        super(400, 2, ALIEN_IMAGE_PATH);
     }
 
     /**
@@ -24,4 +26,3 @@ public class SlowAlien extends Alien {
         }
     }
 }
-

@@ -1,9 +1,11 @@
 package models;
 
+import characters.Turret;
 import javafx.scene.image.Image;
 import characters.Base;
 import characters.Alien;
-import characters.Turret;
+import characters.ElectricTurret;
+import characters.FireTurret;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +25,9 @@ public class GameState {
     private WaveSystem waveSystem;
     private TowerHistory towerHistory;
     private CircularQueue enemyQueue;
+    private static final int COST_STANDARD = 40;
+    private static final int COST_ELECTRIC = 60;
+    private static final int COST_FIRE     = 100;
 
     // Fases de la oleada
     private boolean placingPhase = true;
@@ -43,47 +48,48 @@ public class GameState {
     }
 
     public void beginWave() {
-    // Generar ola 1 si es necesario
-    if (waveSystem.getWaveNumber() == 0) {
-        waveSystem.generateNextWave();
+        // Generar ola 1 si es necesario
+        if (waveSystem.getWaveNumber() == 0) {
+            waveSystem.generateNextWave();
+        }
+
+        Wave currentWave = waveSystem.getCurrentWave();
+        if (currentWave == null) {
+            System.out.println("[ERROR] No hay oleada disponible");
+            return;
+        }
+
+        // Cambiar fases
+        placingPhase = false;
+        waveActive = true;
+        waveComplete = false;
+
+        // Inicializamos el arreglo de aliens pero NO los añadimos a la cola aquí
+        // La cola se maneja desde Game.spawnAliensFromWave()
+        aliens = currentWave.getEnemies();
+        System.out.println("[DEBUG] beginWave() — aliens.length = " + aliens.length);
+        System.out.println("[DEBUG] Oleada " + waveSystem.getWaveNumber() + " iniciada");
     }
 
-    Wave currentWave = waveSystem.getCurrentWave();
-    if (currentWave == null) {
-        System.out.println("[ERROR] No hay oleada disponible");
-        return;
-    }
-
-    // Cambiar fases
-    placingPhase = false;
-    waveActive = true;
-    waveComplete = false;
-
-    // Inicializamos el arreglo de aliens pero NO los añadimos a la cola aquí
-    // La cola se maneja desde Game.spawnAliensFromWave()
-    aliens = currentWave.getEnemies();
-    System.out.println("[DEBUG] beginWave() — aliens.length = " + aliens.length);
-    System.out.println("[DEBUG] Oleada " + waveSystem.getWaveNumber() + " iniciada");
-}
-
+    // Genera y avanza a la siguiente oleada
     public void startNextWave() {
-    waveSystem.waveCompleted(); // Elimina la oleada completada
-    waveSystem.generateNextWave(); // Genera la siguiente
-    
-    Wave currentWave = waveSystem.getCurrentWave();
-    if (currentWave == null) return;
-    
-    // Reiniciar cola de enemigos
-    aliens = currentWave.getEnemies();
-    enemyQueue = new CircularQueue(50);
-    // No añadir los aliens a la cola todavía - esto se hará en beginWave()
-    
-    // Restablecer fases
-    placingPhase = true; // Permitir colocar torres nuevamente
-    waveActive = false;
-    waveComplete = false;
-    System.out.println("[DEBUG] Preparada nueva oleada: " + waveSystem.getWaveNumber());
-}
+        waveSystem.waveCompleted(); // Elimina la oleada completada
+        waveSystem.generateNextWave(); // Genera la siguiente
+        
+        Wave currentWave = waveSystem.getCurrentWave();
+        if (currentWave == null) return;
+        
+        // Reiniciar cola de enemigos
+        aliens = currentWave.getEnemies();
+        enemyQueue = new CircularQueue(50);
+        // No añadir los aliens a la cola todavía - esto se hará en beginWave()
+        
+        // Restablecer fases
+        placingPhase = true; // Permitir colocar torres nuevamente
+        waveActive = false;
+        waveComplete = false;
+        System.out.println("[DEBUG] Preparada nueva oleada: " + waveSystem.getWaveNumber());
+    }
 
     // Actualiza estado de enemigos y detecta fin de oleada
     public void updateGame() {
@@ -133,17 +139,56 @@ public class GameState {
         redCursorImage = new Image("./provided/res/red.png");
     }
 
+    // Método original para añadir una torre estándar
     public void addTurret(int x, int y) {
+        addTurret(x, y, "standard");
+    }
+    
+    // Método sobrecargado que acepta un tipo de torre
+    public void addTurret(int x, int y, String type) {
         if (!placingPhase) return;
-        if (base.getScore() >= 40) {
-            Turret t = new Turret();
+        
+        Turret t = null;
+        boolean canAfford = false;
+        
+        // Crear la torre según el tipo especificado
+        switch (type) {
+            case "standard":
+                if (base.getScore() >= COST_STANDARD) {
+                    t = new Turret();
+                    canAfford = true;
+                }
+                break;
+            case "electric":
+                if (base.getScore() >= COST_ELECTRIC) {
+                    t = new ElectricTurret();
+                    canAfford = true;
+                }
+                break;
+            case "fire":
+                if (base.getScore() >= COST_FIRE) {
+                    t = new FireTurret();
+                    canAfford = true;
+                }
+                break;
+            default:
+                // Por defecto, crear una torre estándar
+                if (base.getScore() >= 100) {
+                    t = new Turret();
+                    canAfford = true;
+                }
+        }
+        
+        if (t != null && canAfford) {
             t.getImageView().setX(x - t.getImageView().getImage().getWidth()/2);
             t.getImageView().setY(y - t.getImageView().getImage().getHeight()/2);
             t.getBombImageView().setX(x);
             t.getBombImageView().setY(y);
             turrets.add(t);
             towerHistory.addAction(t, x, y);
-            base.buyTurret();
+            
+            // Restar el costo de la torre correspondiente
+            base.subScore(t.getCost());
         }
     }
 
@@ -164,13 +209,15 @@ public class GameState {
         if (action != null) {
             Turret t = action.getTurret();
             if (base.getScore() >= t.getCost()) {
-                base.buyTurret();
+                base.subScore(t.getCost());
                 turrets.add(t);
             }
         }
     }
 
     public void handleAlienDeath(Alien alien) {
+        // Recompensar al jugador con puntos por matar un alien
+        base.addScore(10);
     }
 
     public boolean isWaveComplete() {
@@ -179,6 +226,6 @@ public class GameState {
     }
 
     public WaveSystem getWaveSystem() {
-    return waveSystem;
-}
+        return waveSystem;
+    }
 }
