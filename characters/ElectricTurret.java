@@ -4,7 +4,7 @@ import javafx.scene.image.Image;
 public class ElectricTurret extends Turret {
     public ElectricTurret() {
         super();
-        this.attack = 40;
+        this.attack = 30;
         this.cost = 60;
         this.range = 700.0;
         this.fileName = "./provided/res/electric_launcher.png";

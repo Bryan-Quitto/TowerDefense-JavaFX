@@ -31,7 +31,6 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.geometry.Pos;
 import models.GameState;
-import models.TowerAction;
 
 /**
  * Driver class for the TowerDefense Game
@@ -415,7 +414,7 @@ private void handleRedo() {
         } else if (gameState.isWaveCompletePhase()) {
             int numT = gameState.getTurrets().size();
             int refund = numT * COST_STANDARD;
-            int bonus  = 40;
+            int bonus  = 100;
             System.out.println("[DEBUG] Torretas: " + numT + ", refund=" + refund + ", bonus=" + bonus);
             gameState.getBase().addScore(refund + bonus);
             
@@ -440,37 +439,60 @@ private void handleRedo() {
     }
 
     private void spawnAliensFromWave(Wave wave) {
-        if (wave == null) return;
-        System.out.println("[DEBUG] spawnAliensFromWave — hasMore=" + wave.hasMoreEnemies());
-        gameState.getEnemyQueue().clear(); // Limpiar cola completamente
-        Path path = createPath();
-        int count = 0, idx = 0;
-        Alien a;
-        while ((a = wave.getNextEnemy()) != null) {
-            final Alien alien = a;
-            pane1.getChildren().add(alien.getImageView());
-            gameState.getEnemyQueue().enqueue(alien);
-            count++;
-            PathTransition pt = new PathTransition(
-                Duration.millis(20000 + (idx++) * 15000), path, alien.getImageView()
-            );
-            pt.setOnFinished(e -> {
-                pane1.getChildren().remove(alien.getImageView());
-                if (!alien.isDead()) {
-                    gameState.getBase().subHealth(alien.getAttack());
-                    updateStatusText();
-                    System.out.println("[DEBUG] Base damaged: " + alien.getAttack() + ", health=" + gameState.getBase().getHealth());
-                    if (gameState.getBase().getHealth() <= 0) mainStage.setScene(gameOverScene);
-                } else {
-                    System.out.println("[DEBUG] Alien muerto antes de llegar");
+    if (wave == null) return;
+    System.out.println("[DEBUG] spawnAliensFromWave — hasMore=" + wave.hasMoreEnemies());
+    gameState.getEnemyQueue().clear(); // Limpiar cola completamente
+    Path path = createPath();
+
+    int count = 0;
+    int idx   = 0;
+    Alien a;
+    // Referencia de tiempo: 20 s para un alien con speed=100
+    final double baseDurationMs = 20000.0;
+    // Espaciamiento entre spawns (en ms)
+    final double spawnDelayMs  = 500.0;
+
+    while ((a = wave.getNextEnemy()) != null) {
+        final Alien alien = a;
+        pane1.getChildren().add(alien.getImageView());
+        gameState.getEnemyQueue().enqueue(alien);
+        count++;
+
+        // 1) Duración según speed:
+        double durationMs = baseDurationMs * (100.0 / alien.getSpeed());
+        PathTransition pt = new PathTransition(
+            Duration.millis(durationMs),
+            path,
+            alien.getImageView()
+        );
+
+        // 2) Delay para escalonar cada alien:
+        pt.setDelay(Duration.millis(idx * spawnDelayMs));
+        idx++;
+
+        // 3) Al terminar la transición:
+        pt.setOnFinished(e -> {
+            pane1.getChildren().remove(alien.getImageView());
+            if (!alien.isDead()) {
+                gameState.getBase().subHealth(alien.getAttack());
+                updateStatusText();
+                System.out.println("[DEBUG] Base damaged: " + alien.getAttack() +
+                                   ", health=" + gameState.getBase().getHealth());
+                if (gameState.getBase().getHealth() <= 0) {
+                    mainStage.setScene(gameOverScene);
                 }
-                gameState.getEnemyQueue().dequeue();
-                updateEnemiesText();
-            });
-            pt.play();
-        }
-        System.out.println("[DEBUG] enemigos encolados = " + count);
+            } else {
+                System.out.println("[DEBUG] Alien muerto antes de llegar");
+            }
+            gameState.getEnemyQueue().dequeue();
+            updateEnemiesText();
+        });
+
+        pt.play();
     }
+
+    System.out.println("[DEBUG] enemigos encolados = " + count);
+}
 
     private void handleMouseClick(MouseEvent e, Cursor green) {
         try {

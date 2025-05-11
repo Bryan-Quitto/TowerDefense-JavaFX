@@ -1,10 +1,6 @@
 package characters;
 import java.util.Random;
-/**
- * This is a representation of the FastAlien which is an Alien
- * @author Bilal Mawji
- * @version 1.0
- */
+
 public class FastAlien extends Alien {
     private final Random rand = new Random();
     // Cambiado a una imagen que visualmente represente mejor a un alien rápido
@@ -16,7 +12,7 @@ public class FastAlien extends Alien {
      */
     public FastAlien() {
         // Velocidad aumentada de 3 a 6
-        this(200, 6, ALIEN_IMAGE_PATH);
+        this(300, 200, ALIEN_IMAGE_PATH);
     }
 
     /**

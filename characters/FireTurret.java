@@ -8,7 +8,7 @@ public class FireTurret extends Turret {
     
     public FireTurret() {
         super();
-        this.attack = 75; // Más daño que la torreta básica
+        this.attack = 60; // Más daño que la torreta básica
         this.cost = 100;   // Más costosa
         this.range = 250.0; // Menos rango que la básica
         this.fileName = FIRE_TURRET_IMAGE;

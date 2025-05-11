@@ -11,11 +11,11 @@ public class WaveSystem {
     public WaveSystem() {
         waveQueue = new LinkedList<>();
         currentWaveNumber = 1;
+        // ¡AÑADE ESTO para empezar en la ola 1!
+        waveQueue.offer(new Wave(currentWaveNumber));
+        System.out.println("[DEBUG] Oleada " + currentWaveNumber + " generada (inicial)");
     }
 
-    /**
-     * Genera la siguiente ola si no se ha alcanzado el límite de oleadas.
-     */
     public void generateNextWave() {
         if (currentWaveNumber >= MAX_WAVES) return;
         currentWaveNumber++;
@@ -24,23 +24,14 @@ public class WaveSystem {
         System.out.println("[DEBUG] Oleada " + currentWaveNumber + " generada");
     }
     
-    /**
-     * @return la ola actual (o null si no existe)
-     */
     public Wave getCurrentWave() {
         return waveQueue.peek();
     }
 
-    /**
-     * Marca la ola actual como completada y la elimina de la cola.
-     */
     public void waveCompleted() {
         waveQueue.poll();
     }
 
-    /**
-     * @return número de la ola más reciente generada
-     */
     public int getWaveNumber() {
         return currentWaveNumber;
     }

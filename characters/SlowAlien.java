@@ -11,8 +11,7 @@ public class SlowAlien extends Alien {
      * Constructor público que establece salud, velocidad y ruta de la imagen
      */
     public SlowAlien() {
-        // Velocidad aumentada de 1 a 2
-        super(400, 2, ALIEN_IMAGE_PATH);
+        super(600, 100, ALIEN_IMAGE_PATH);
     }
 
     /**

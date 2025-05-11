@@ -11,7 +11,7 @@ public class Base {
      */
     public Base() {
         this.health = 1000;
-        this.score = 160;
+        this.score = 350;
     }
 
     /**

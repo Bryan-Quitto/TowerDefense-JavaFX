@@ -29,7 +29,7 @@ public class Turret {
     private Alien currentTarget;
 
     public Turret() {
-        this.attack = 50;
+        this.attack = 40;
         this.cost = 40;
         this.range = 350.0;
         this.fileName = "./provided/res/launcher.png";
