@@ -87,7 +87,7 @@ public class Game extends Application {
     title.setFont(Font.loadFont("file:./provided/res/RetroComputer.ttf", 80));
     title.setFill(Color.WHITE);
     
-    Button startButton = new Button("Empezar Juego");
+    Button startButton = new Button("Empezar juego");
     startButton.setStyle("-fx-font-size: 40px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
     startButton.setOnAction(e -> startGame());
     
