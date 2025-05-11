@@ -31,6 +31,8 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.geometry.Pos;
 import models.GameState;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Driver class for the TowerDefense Game
@@ -44,6 +46,8 @@ public class Game extends Application {
     private Button nextWaveButton;
     private Text waveText;
     private Pane pane1, pane2;
+    private List<PathTransition> activeTransitions = new ArrayList<>();
+    private Timeline gameLoop;
     private static final int COST_STANDARD = 40;
     private static final int COST_ELECTRIC = 60;
     private static final int COST_FIRE     = 100;
@@ -134,27 +138,32 @@ private void createWinScene() {
     }
 
     private void startGame() {
+    // Detener loop y transiciones antiguas
+    if (gameLoop != null) {
+        gameLoop.stop();
+    }
+    for (PathTransition pt : activeTransitions) {
+        pt.stop();
+    }
+    activeTransitions.clear();
+
+    // Reinicializar estado
     gameState = new GameState();
     createGameScene();
 
-    // Game update loop
-    Timeline gameLoop = new Timeline(new KeyFrame(Duration.millis(100), e -> {
+    // Nuevo loop de juego
+    gameLoop = new Timeline(new KeyFrame(Duration.millis(100), e -> {
         gameState.updateGame();
         updateStatusText();
         updateEnemiesText();
 
-        // Si la fase es de oleada completa...
         if (gameState.isWaveCompletePhase()) {
             int currentWave = gameState.getCurrentWaveNumber();
             int remainingEnemies = gameState.getEnemyQueue().getSize();
-
-            // Victoria al terminar la oleada 10 y no quedan enemigos
             if (currentWave == 10 && remainingEnemies == 0) {
                 mainStage.setScene(winScene);
                 return;
             }
-
-            // Sino, habilitar siguiente oleada normalmente
             nextWaveButton.setDisable(false);
             nextWaveButton.setText("Siguiente oleada");
         }
@@ -441,48 +450,40 @@ private void handleRedo() {
     private void spawnAliensFromWave(Wave wave) {
     if (wave == null) return;
     System.out.println("[DEBUG] spawnAliensFromWave — hasMore=" + wave.hasMoreEnemies());
-    gameState.getEnemyQueue().clear(); // Limpiar cola completamente
+    gameState.getEnemyQueue().clear();
     Path path = createPath();
 
-    int count = 0;
-    int idx   = 0;
-    Alien a;
-    // Referencia de tiempo: 20 s para un alien con speed=100
+    int count = 0, idx = 0;
     final double baseDurationMs = 20000.0;
-    // Espaciamiento entre spawns (en ms)
-    final double spawnDelayMs  = 500.0;
+    final double spawnDelayMs = 500.0;
 
+    Alien a;
     while ((a = wave.getNextEnemy()) != null) {
         final Alien alien = a;
         pane1.getChildren().add(alien.getImageView());
         gameState.getEnemyQueue().enqueue(alien);
         count++;
 
-        // 1) Duración según speed:
         double durationMs = baseDurationMs * (100.0 / alien.getSpeed());
         PathTransition pt = new PathTransition(
-            Duration.millis(durationMs),
-            path,
-            alien.getImageView()
+            Duration.millis(durationMs), path, alien.getImageView()
         );
-
-        // 2) Delay para escalonar cada alien:
         pt.setDelay(Duration.millis(idx * spawnDelayMs));
         idx++;
 
-        // 3) Al terminar la transición:
+        // Guardar transición activa
+        activeTransitions.add(pt);
+
         pt.setOnFinished(e -> {
+            // Al terminar, quitar transición
+            activeTransitions.remove(pt);
             pane1.getChildren().remove(alien.getImageView());
             if (!alien.isDead()) {
                 gameState.getBase().subHealth(alien.getAttack());
                 updateStatusText();
-                System.out.println("[DEBUG] Base damaged: " + alien.getAttack() +
-                                   ", health=" + gameState.getBase().getHealth());
                 if (gameState.getBase().getHealth() <= 0) {
                     mainStage.setScene(gameOverScene);
                 }
-            } else {
-                System.out.println("[DEBUG] Alien muerto antes de llegar");
             }
             gameState.getEnemyQueue().dequeue();
             updateEnemiesText();
@@ -490,7 +491,6 @@ private void handleRedo() {
 
         pt.play();
     }
-
     System.out.println("[DEBUG] enemigos encolados = " + count);
 }
 

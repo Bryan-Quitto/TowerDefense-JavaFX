@@ -236,4 +236,11 @@ public TowerHistory getTowerHistory() {
     public WaveSystem getWaveSystem() {
         return waveSystem;
     }
+ 
+    public void reset() {
+    this.base = new Base(); // restablece salud
+    this.enemyQueue.clear();
+    // cualquier otra variable que quieras resetear
+    }
+
 }
